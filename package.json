@@ -1,0 +1,95 @@
+{
+  "name": "pseudo-folders",
+  "displayName": "Pseudo Folders",
+  "description": "Organize your workspace with virtual folders without changing actual file paths",
+  "version": "0.1.0",
+  "publisher": "maxs-lab-of-things",
+  "license": "MIT",
+  "author": {
+    "name": "Max Marquardt",
+    "url": "https://mlot.ai"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": ["Other"],
+  "keywords": ["folders", "organization", "workspace", "virtual", "pseudo"],
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "main": "./out/extension.js",
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "pseudoFolders",
+          "name": "Pseudo Folders",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "pseudoFolders.createFolder",
+        "title": "Create Pseudo Folder",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "pseudoFolders.deleteFolder",
+        "title": "Delete Pseudo Folder",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "pseudoFolders.renameFolder",
+        "title": "Rename Pseudo Folder",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "pseudoFolders.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "pseudoFolders.createFolder",
+          "when": "view == pseudoFolders",
+          "group": "navigation"
+        },
+        {
+          "command": "pseudoFolders.refresh",
+          "when": "view == pseudoFolders",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "pseudoFolders.renameFolder",
+          "when": "view == pseudoFolders && viewItem == pseudoFolder",
+          "group": "inline"
+        },
+        {
+          "command": "pseudoFolders.deleteFolder",
+          "when": "view == pseudoFolders && viewItem == pseudoFolder",
+          "group": "inline"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.3",
+    "@vscode/vsce": "^2.22.0"
+  }
+}
