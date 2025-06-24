@@ -1,22 +1,77 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PseudoFolder, PseudoFolderData } from './types';
 
 export class PseudoFolderStorage {
-    private static readonly STORAGE_KEY = 'pseudoFolders';
+    private static readonly STORAGE_FILE = '.pseudo-folders.json';
     
     constructor(private context: vscode.ExtensionContext) {}
     
+    private getStorageFilePath(): string | undefined {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            return undefined;
+        }
+        return path.join(workspaceFolder.uri.fsPath, PseudoFolderStorage.STORAGE_FILE);
+    }
+    
     async getPseudoFolders(): Promise<PseudoFolder[]> {
-        const data = this.context.workspaceState.get<PseudoFolderData>(
-            PseudoFolderStorage.STORAGE_KEY,
-            { folders: [] }
-        );
-        return data.folders;
+        const filePath = this.getStorageFilePath();
+        if (!filePath || !fs.existsSync(filePath)) {
+            return [];
+        }
+        
+        try {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            if (!content.trim()) {
+                return [];
+            }
+            
+            const data: PseudoFolderData = JSON.parse(content);
+            
+            // Validate data structure
+            if (!data || typeof data !== 'object' || !Array.isArray(data.folders)) {
+                console.warn('Invalid pseudo folders data structure, resetting');
+                return [];
+            }
+            
+            // Validate and clean up folder entries
+            const validFolders = data.folders.filter(folder => {
+                if (!folder || typeof folder !== 'object') return false;
+                if (!folder.id || !folder.name || !Array.isArray(folder.realFolders)) return false;
+                
+                // Filter out non-existent paths for safety
+                folder.realFolders = folder.realFolders.filter(p => {
+                    try {
+                        return typeof p === 'string' && fs.existsSync(p);
+                    } catch {
+                        return false;
+                    }
+                });
+                
+                return true;
+            });
+            
+            return validFolders;
+        } catch (error) {
+            console.error('Error reading pseudo folders:', error);
+            return [];
+        }
     }
     
     async savePseudoFolders(folders: PseudoFolder[]): Promise<void> {
+        const filePath = this.getStorageFilePath();
+        if (!filePath) {
+            return;
+        }
+        
         const data: PseudoFolderData = { folders };
-        await this.context.workspaceState.update(PseudoFolderStorage.STORAGE_KEY, data);
+        try {
+            fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+        } catch (error) {
+            console.error('Error saving pseudo folders:', error);
+        }
     }
     
     async addPseudoFolder(folder: PseudoFolder): Promise<void> {
@@ -42,6 +97,18 @@ export class PseudoFolderStorage {
     }
     
     async addFolderToPseudoFolder(pseudoFolderId: string, folderPath: string): Promise<void> {
+        // Input validation
+        if (!pseudoFolderId || !folderPath || typeof pseudoFolderId !== 'string' || typeof folderPath !== 'string') {
+            console.warn('Invalid input for addFolderToPseudoFolder');
+            return;
+        }
+        
+        // Validate path exists
+        if (!fs.existsSync(folderPath)) {
+            console.warn('Path does not exist:', folderPath);
+            return;
+        }
+        
         const folders = await this.getPseudoFolders();
         const pseudoFolder = folders.find(f => f.id === pseudoFolderId);
         

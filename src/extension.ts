@@ -15,11 +15,28 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('pseudoFolders.createFolder', async () => {
         const name = await vscode.window.showInputBox({
             prompt: 'Enter pseudo folder name',
-            placeHolder: 'My Folder'
+            placeHolder: 'My Folder',
+            validateInput: (value) => {
+                if (!value || !value.trim()) {
+                    return 'Folder name cannot be empty';
+                }
+                if (value.length > 100) {
+                    return 'Folder name too long (max 100 characters)';
+                }
+                if (/[<>:"/\\|?*]/.test(value)) {
+                    return 'Folder name contains invalid characters';
+                }
+                return null;
+            }
         });
         
-        if (name) {
-            await provider.createPseudoFolder(name);
+        if (name && name.trim()) {
+            try {
+                await provider.createPseudoFolder(name.trim());
+            } catch (error) {
+                console.error('Error creating pseudo folder:', error);
+                vscode.window.showErrorMessage('Failed to create pseudo folder');
+            }
         }
     });
 
@@ -35,19 +52,48 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     vscode.commands.registerCommand('pseudoFolders.renameFolder', async (item) => {
+        if (!item || !item.id) {
+            vscode.window.showErrorMessage('Invalid folder selected');
+            return;
+        }
+        
         const newName = await vscode.window.showInputBox({
             prompt: 'Enter new name',
             value: item.label,
-            placeHolder: 'New Folder Name'
+            placeHolder: 'New Folder Name',
+            validateInput: (value) => {
+                if (!value || !value.trim()) {
+                    return 'Folder name cannot be empty';
+                }
+                if (value.length > 100) {
+                    return 'Folder name too long (max 100 characters)';
+                }
+                if (/[<>:"/\\|?*]/.test(value)) {
+                    return 'Folder name contains invalid characters';
+                }
+                return null;
+            }
         });
         
-        if (newName && newName !== item.label) {
-            await provider.renamePseudoFolder(item.id, newName);
+        if (newName && newName.trim() && newName.trim() !== item.label) {
+            try {
+                await provider.renamePseudoFolder(item.id, newName.trim());
+            } catch (error) {
+                console.error('Error renaming pseudo folder:', error);
+                vscode.window.showErrorMessage('Failed to rename pseudo folder');
+            }
         }
     });
 
     vscode.commands.registerCommand('pseudoFolders.refresh', () => {
         provider.refresh();
+    });
+
+    vscode.commands.registerCommand('pseudoFolders.copyPath', async (item) => {
+        if (item && item.realPath) {
+            await vscode.env.clipboard.writeText(item.realPath);
+            vscode.window.showInformationMessage(`Path copied: ${item.realPath}`);
+        }
     });
 }
 

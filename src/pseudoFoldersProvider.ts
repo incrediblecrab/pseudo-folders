@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { PseudoFolder } from './types';
+import * as fs from 'fs';
+import { PseudoFolder, FileSystemItem } from './types';
 import { PseudoFolderStorage } from './storage';
 
 export class PseudoFoldersProvider implements vscode.TreeDataProvider<PseudoFolderItem>, vscode.TreeDragAndDropController<PseudoFolderItem> {
@@ -28,22 +29,102 @@ export class PseudoFoldersProvider implements vscode.TreeDataProvider<PseudoFold
                 folder.name,
                 'pseudoFolder',
                 vscode.TreeItemCollapsibleState.Expanded,
+                undefined,
                 folder.realFolders
             ));
         } else if (element.type === 'pseudoFolder') {
-            return element.realFolders.map(folderPath => {
-                const folderName = path.basename(folderPath);
-                return new PseudoFolderItem(
-                    folderPath,
-                    folderName,
-                    'realFolder',
-                    vscode.TreeItemCollapsibleState.None,
-                    [],
-                    folderPath
-                );
-            });
+            const items: PseudoFolderItem[] = [];
+            
+            for (const folderPath of element.realFolders || []) {
+                if (fs.existsSync(folderPath)) {
+                    const stat = fs.statSync(folderPath);
+                    const folderName = path.basename(folderPath);
+                    
+                    if (stat.isDirectory()) {
+                        items.push(new PseudoFolderItem(
+                            folderPath,
+                            folderName,
+                            'realFolder',
+                            vscode.TreeItemCollapsibleState.Collapsed,
+                            folderPath,
+                            undefined,
+                            element.id
+                        ));
+                    } else {
+                        items.push(new PseudoFolderItem(
+                            folderPath,
+                            folderName,
+                            'file',
+                            vscode.TreeItemCollapsibleState.None,
+                            folderPath,
+                            undefined,
+                            element.id
+                        ));
+                    }
+                }
+            }
+            
+            return items;
+        } else if (element.type === 'realFolder' && element.realPath) {
+            return this.getFileSystemChildren(element.realPath, element.pseudoFolderId);
         }
+        
         return [];
+    }
+    
+    private async getFileSystemChildren(dirPath: string, pseudoFolderId?: string): Promise<PseudoFolderItem[]> {
+        const items: PseudoFolderItem[] = [];
+        
+        try {
+            if (!fs.existsSync(dirPath)) {
+                return [];
+            }
+            
+            const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+            
+            // Performance: Use withFileTypes to avoid extra stat calls
+            for (const entry of entries) {
+                // Skip hidden files and system files for performance
+                if (entry.name.startsWith('.')) {
+                    continue;
+                }
+                
+                const fullPath = path.join(dirPath, entry.name);
+                
+                if (entry.isDirectory()) {
+                    items.push(new PseudoFolderItem(
+                        fullPath,
+                        entry.name,
+                        'realFolder',
+                        vscode.TreeItemCollapsibleState.Collapsed,
+                        fullPath,
+                        undefined,
+                        pseudoFolderId
+                    ));
+                } else if (entry.isFile()) {
+                    items.push(new PseudoFolderItem(
+                        fullPath,
+                        entry.name,
+                        'file',
+                        vscode.TreeItemCollapsibleState.None,
+                        fullPath,
+                        undefined,
+                        pseudoFolderId
+                    ));
+                }
+            }
+        } catch (error) {
+            console.error('Error reading directory:', dirPath, error);
+            vscode.window.showErrorMessage(`Cannot read directory: ${path.basename(dirPath)}`);
+            return [];
+        }
+        
+        // Performance: Efficient sorting with pre-computed types
+        return items.sort((a, b) => {
+            if (a.type === 'realFolder' && b.type === 'file') return -1;
+            if (a.type === 'file' && b.type === 'realFolder') return 1;
+            return a.label!.localeCompare(b.label!, undefined, { numeric: true, sensitivity: 'base' });
+        });
     }
     
     async createPseudoFolder(name: string): Promise<void> {
@@ -91,12 +172,14 @@ export class PseudoFoldersProvider implements vscode.TreeDataProvider<PseudoFold
         const draggedItems = transferItem.value as PseudoFolderItem[];
         
         for (const item of draggedItems) {
-            if (item.type === 'realFolder' && target?.type === 'pseudoFolder') {
-                const sourcePseudoFolder = await this.findPseudoFolderContaining(item.realPath!);
+            if (item.type === 'pseudoFolder' && target?.type === 'pseudoFolder' && item.id !== target.id) {
+                await this.reorderPseudoFolders(item.id, target.id);
+            } else if ((item.type === 'realFolder' || item.type === 'file') && target?.type === 'pseudoFolder' && item.realPath) {
+                const sourcePseudoFolder = await this.findPseudoFolderContaining(item.realPath);
                 if (sourcePseudoFolder) {
-                    await this.storage.removeFolderFromPseudoFolder(sourcePseudoFolder.id, item.realPath!);
+                    await this.storage.removeFolderFromPseudoFolder(sourcePseudoFolder.id, item.realPath);
                 }
-                await this.storage.addFolderToPseudoFolder(target.id, item.realPath!);
+                await this.storage.addFolderToPseudoFolder(target.id, item.realPath);
             }
         }
         
@@ -107,28 +190,50 @@ export class PseudoFoldersProvider implements vscode.TreeDataProvider<PseudoFold
         const folders = await this.storage.getPseudoFolders();
         return folders.find(f => f.realFolders.includes(folderPath));
     }
+    
+    private async reorderPseudoFolders(draggedId: string, targetId: string): Promise<void> {
+        const folders = await this.storage.getPseudoFolders();
+        const draggedIndex = folders.findIndex(f => f.id === draggedId);
+        const targetIndex = folders.findIndex(f => f.id === targetId);
+        
+        if (draggedIndex !== -1 && targetIndex !== -1) {
+            const [draggedFolder] = folders.splice(draggedIndex, 1);
+            folders.splice(targetIndex, 0, draggedFolder);
+            await this.storage.savePseudoFolders(folders);
+        }
+    }
 }
 
 class PseudoFolderItem extends vscode.TreeItem {
     constructor(
         public readonly id: string,
         public readonly label: string,
-        public readonly type: 'pseudoFolder' | 'realFolder',
+        public readonly type: 'pseudoFolder' | 'realFolder' | 'file',
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly realFolders: string[] = [],
-        public readonly realPath?: string
+        public readonly realPath?: string,
+        public readonly realFolders?: string[],
+        public readonly pseudoFolderId?: string
     ) {
         super(label, collapsibleState);
         
         this.contextValue = type;
         
         if (type === 'pseudoFolder') {
-            this.iconPath = new vscode.ThemeIcon('folder');
+            this.iconPath = new vscode.ThemeIcon('folder-opened');
             this.tooltip = `Pseudo Folder: ${label}`;
-        } else {
+        } else if (type === 'realFolder') {
             this.iconPath = new vscode.ThemeIcon('folder');
             this.tooltip = realPath;
-            this.resourceUri = vscode.Uri.file(realPath!);
+            this.resourceUri = realPath ? vscode.Uri.file(realPath) : undefined;
+        } else if (type === 'file') {
+            this.iconPath = vscode.ThemeIcon.File;
+            this.tooltip = realPath;
+            this.resourceUri = realPath ? vscode.Uri.file(realPath) : undefined;
+            this.command = {
+                command: 'vscode.open',
+                title: 'Open File',
+                arguments: [vscode.Uri.file(realPath!)]
+            };
         }
     }
 }

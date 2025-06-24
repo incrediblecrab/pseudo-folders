@@ -7,3 +7,10 @@ export interface PseudoFolder {
 export interface PseudoFolderData {
     folders: PseudoFolder[];
 }
+
+export interface FileSystemItem {
+    path: string;
+    name: string;
+    isDirectory: boolean;
+    children?: FileSystemItem[];
+}

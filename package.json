@@ -50,6 +50,11 @@
         "command": "pseudoFolders.refresh",
         "title": "Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "pseudoFolders.copyPath",
+        "title": "Copy Path",
+        "icon": "$(copy)"
       }
     ],
     "menus": {
@@ -75,6 +80,26 @@
           "command": "pseudoFolders.deleteFolder",
           "when": "view == pseudoFolders && viewItem == pseudoFolder",
           "group": "inline"
+        },
+        {
+          "command": "pseudoFolders.copyPath",
+          "when": "view == pseudoFolders && (viewItem == realFolder || viewItem == file)",
+          "group": "6_copypath"
+        },
+        {
+          "command": "revealInExplorer",
+          "when": "view == pseudoFolders && (viewItem == realFolder || viewItem == file)",
+          "group": "2_workspace"
+        },
+        {
+          "command": "copyFilePath",
+          "when": "view == pseudoFolders && (viewItem == realFolder || viewItem == file)",
+          "group": "6_copypath"
+        },
+        {
+          "command": "copyRelativeFilePath",
+          "when": "view == pseudoFolders && (viewItem == realFolder || viewItem == file)",
+          "group": "6_copypath"
         }
       ]
     }
