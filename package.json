@@ -2,13 +2,14 @@
   "name": "pseudo-folders",
   "displayName": "Pseudo Folders",
   "description": "Organize your workspace with virtual folders without changing actual file paths",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "maxs-lab-of-things",
   "license": "MIT",
   "author": {
     "name": "Max Marquardt",
     "url": "https://mlot.ai"
   },
+  "homepage": "https://mlot.ai",
   "engines": {
     "vscode": "^1.74.0"
   },
