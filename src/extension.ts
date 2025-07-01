@@ -95,6 +95,48 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(`Path copied: ${item.realPath}`);
         }
     });
+
+    vscode.commands.registerCommand('pseudoFolders.createChildFolder', async (item) => {
+        if (!item || item.type !== 'pseudoFolder') {
+            vscode.window.showErrorMessage('Please select a pseudo folder');
+            return;
+        }
+
+        const name = await vscode.window.showInputBox({
+            prompt: `Enter name for child folder inside "${item.label}"`,
+            placeHolder: 'Child Folder',
+            validateInput: (value) => {
+                if (!value || !value.trim()) {
+                    return 'Folder name cannot be empty';
+                }
+                if (value.length > 100) {
+                    return 'Folder name too long (max 100 characters)';
+                }
+                if (/[<>:"/\\|?*]/.test(value)) {
+                    return 'Folder name contains invalid characters';
+                }
+                return null;
+            }
+        });
+
+        if (name && name.trim()) {
+            try {
+                const childId = Date.now().toString();
+                const childFolder = {
+                    id: childId,
+                    name: name.trim(),
+                    realFolders: [],
+                    parentId: item.id,
+                    childIds: []
+                };
+                await storage.addChildPseudoFolder(item.id, childFolder);
+                provider.refresh();
+            } catch (error) {
+                console.error('Error creating child folder:', error);
+                vscode.window.showErrorMessage('Failed to create child folder');
+            }
+        }
+    });
 }
 
 export function deactivate() {}

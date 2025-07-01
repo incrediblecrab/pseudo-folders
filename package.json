@@ -2,7 +2,7 @@
   "name": "pseudo-folders",
   "displayName": "Pseudo Folders",
   "description": "Organize your workspace with virtual folders without changing actual file paths",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "maxs-lab-of-things",
   "license": "MIT",
   "author": {
@@ -56,6 +56,11 @@
         "command": "pseudoFolders.copyPath",
         "title": "Copy Path",
         "icon": "$(copy)"
+      },
+      {
+        "command": "pseudoFolders.createChildFolder",
+        "title": "Create Child Folder",
+        "icon": "$(new-folder)"
       }
     ],
     "menus": {
@@ -74,6 +79,11 @@
       "view/item/context": [
         {
           "command": "pseudoFolders.renameFolder",
+          "when": "view == pseudoFolders && viewItem == pseudoFolder",
+          "group": "inline"
+        },
+        {
+          "command": "pseudoFolders.createChildFolder",
           "when": "view == pseudoFolders && viewItem == pseudoFolder",
           "group": "inline"
         },
