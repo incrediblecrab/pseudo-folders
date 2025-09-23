@@ -1,6 +1,11 @@
 # Pseudo Folders
 
+![Version](https://img.shields.io/visual-studio-marketplace/v/maxs-lab-of-things.pseudo-folders)
+![MLoT](https://img.shields.io/badge/MLoT-ai-blue)
+
 Organize your VS Code workspace with virtual folders without changing actual file paths.
+
+![Demo](https://raw.githubusercontent.com/incrediblecrab/Packages-and-Extensions-Media/main/pseudo-folders.gif)
 
 ## Features
 
@@ -31,9 +36,16 @@ Pseudo Folders creates a virtual organization layer on top of your existing file
 - `Delete Pseudo Folder`: Remove a pseudo folder (folders inside return to normal view)
 - `Refresh`: Refresh the pseudo folders view
 
-## Author
+## Resources
 
-Max Marquardt | [mlot.ai](https://mlot.ai)
+- 📺 [Watch Demo Video](https://youtu.be/2bqRat3q4HI)
+- 🌐 [Visit MLoT Page](https://mlot.ai/pseudo-folders/)
+- 🔒 [Privacy Policy](https://mlot.ai/privacy)
+
+## Publisher
+
+**Max's Lab of Things**
+Visit [mlot.ai](https://mlot.ai/)
 
 ## License
 
