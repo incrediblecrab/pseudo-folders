@@ -5,7 +5,7 @@
 
 Organize your VS Code workspace with virtual folders without changing actual file paths.
 
-![Demo](https://raw.githubusercontent.com/incrediblecrab/Packages-and-Extensions-Media/main/gifs/pseudo-folders.gif)
+![Demo](https://raw.githubusercontent.com/incrediblecrab/mlot-developer-media/main/gifs/pseudo-folders.gif)
 
 ## Features
 
