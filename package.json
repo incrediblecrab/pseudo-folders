@@ -2,7 +2,7 @@
   "name": "pseudo-folders",
   "displayName": "Pseudo Folders",
   "description": "Organize your workspace with virtual folders without changing actual file paths",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "publisher": "maxs-lab-of-things",
   "license": "MIT",
   "author": {
